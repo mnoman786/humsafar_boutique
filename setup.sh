@@ -44,7 +44,7 @@ if [ ! -f "$BACKEND_DIR/.env" ]; then
 SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(50))")
 DEBUG=True
 DJANGO_SETTINGS_MODULE=config.settings.development
-CORS_ALLOWED_ORIGINS=http://localhost:3005,http://127.0.0.1:3005
+CORS_ALLOWED_ORIGINS=http://162.217.248.75:3005,http://localhost:3005,http://127.0.0.1:3005
 EOF
 fi
 
@@ -61,7 +61,9 @@ npm install --legacy-peer-deps --silent
 
 # Create .env.local if missing
 if [ ! -f "$FRONTEND_DIR/.env.local" ]; then
-  echo "NEXT_PUBLIC_API_URL=http://localhost:9010/api" > "$FRONTEND_DIR/.env.local"
+  cat > "$FRONTEND_DIR/.env.local" <<EOF
+NEXT_PUBLIC_API_URL=http://162.217.248.75:9010/api
+EOF
 fi
 
 npm run build
@@ -122,8 +124,8 @@ systemctl restart Humsafar-frontend
 # ── 7. Status ─────────────────────────────────────────────────────────────────
 echo ""
 info "Done! Services are running:"
-systemctl is-active --quiet Humsafar-backend  && echo -e "  ${GREEN}✓${NC} Humsafar-backend  → http://localhost:9010" || warn "Humsafar-backend failed to start"
-systemctl is-active --quiet Humsafar-frontend && echo -e "  ${GREEN}✓${NC} Humsafar-frontend → http://localhost:3005" || warn "Humsafar-frontend failed to start"
+systemctl is-active --quiet Humsafar-backend  && echo -e "  ${GREEN}✓${NC} Humsafar-backend  → http://162.217.248.75:9010" || warn "Humsafar-backend failed to start"
+systemctl is-active --quiet Humsafar-frontend && echo -e "  ${GREEN}✓${NC} Humsafar-frontend → http://162.217.248.75:3005" || warn "Humsafar-frontend failed to start"
 
 echo ""
 echo "  Useful commands:"
