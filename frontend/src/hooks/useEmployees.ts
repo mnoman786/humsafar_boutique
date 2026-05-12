@@ -24,6 +24,7 @@ export function useCreateEmployee() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] })
+      qc.invalidateQueries({ queryKey: ['attendance'] })
       toast.success('Employee added.')
     },
     onError: () => toast.error('Failed to add employee.'),
@@ -39,6 +40,7 @@ export function useUpdateEmployee(id: number) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] })
+      qc.invalidateQueries({ queryKey: ['attendance'] })
       toast.success('Employee updated.')
     },
     onError: () => toast.error('Failed to update employee.'),
@@ -53,6 +55,7 @@ export function useDeleteEmployee() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] })
+      qc.invalidateQueries({ queryKey: ['attendance'] })
       toast.success('Employee deleted.')
     },
     onError: () => toast.error('Failed to delete employee.'),
