@@ -33,7 +33,7 @@ if [ ! -f "$BACKEND_DIR/.env" ]; then
 SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(50))")
 DEBUG=True
 DJANGO_SETTINGS_MODULE=config.settings.development
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+CORS_ALLOWED_ORIGINS=http://localhost:3005,http://127.0.0.1:3005
 EOF
 fi
 
@@ -50,7 +50,7 @@ npm install --legacy-peer-deps --silent
 
 # Create .env.local if missing
 if [ ! -f "$FRONTEND_DIR/.env.local" ]; then
-  echo "NEXT_PUBLIC_API_URL=http://localhost:8000/api" > "$FRONTEND_DIR/.env.local"
+  echo "NEXT_PUBLIC_API_URL=http://localhost:9010/api" > "$FRONTEND_DIR/.env.local"
 fi
 
 npm run build
@@ -67,7 +67,7 @@ After=network.target
 User=$SERVICE_USER
 WorkingDirectory=$BACKEND_DIR
 EnvironmentFile=$BACKEND_DIR/.env
-ExecStart=$VENV/bin/python manage.py runserver 0.0.0.0:8000
+ExecStart=$VENV/bin/python manage.py runserver 0.0.0.0:9010
 Restart=always
 RestartSec=5
 
@@ -89,7 +89,7 @@ After=network.target Humsafar-backend.service
 User=$SERVICE_USER
 WorkingDirectory=$FRONTEND_DIR
 Environment=NODE_ENV=production
-Environment=PORT=3000
+Environment=PORT=3005
 ExecStart=$NPM_BIN start
 Restart=always
 RestartSec=5
@@ -111,8 +111,8 @@ systemctl restart Humsafar-frontend
 # ── 7. Status ─────────────────────────────────────────────────────────────────
 echo ""
 info "Done! Services are running:"
-systemctl is-active --quiet Humsafar-backend  && echo -e "  ${GREEN}✓${NC} Humsafar-backend  → http://localhost:8000" || warn "Humsafar-backend failed to start"
-systemctl is-active --quiet Humsafar-frontend && echo -e "  ${GREEN}✓${NC} Humsafar-frontend → http://localhost:3000" || warn "Humsafar-frontend failed to start"
+systemctl is-active --quiet Humsafar-backend  && echo -e "  ${GREEN}✓${NC} Humsafar-backend  → http://localhost:9010" || warn "Humsafar-backend failed to start"
+systemctl is-active --quiet Humsafar-frontend && echo -e "  ${GREEN}✓${NC} Humsafar-frontend → http://localhost:3005" || warn "Humsafar-frontend failed to start"
 
 echo ""
 echo "  Useful commands:"
