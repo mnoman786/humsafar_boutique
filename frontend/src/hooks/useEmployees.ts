@@ -75,6 +75,28 @@ export function useWeeklyAttendance(weekStart: string) {
   })
 }
 
+export interface AttendanceHistoryEntry {
+  id: number
+  date: string
+  old_hours: number
+  new_hours: number
+  changed_by_name: string
+  changed_at: string
+}
+
+export function useAttendanceHistory(employeeId: number | null, date: string | null) {
+  return useQuery<AttendanceHistoryEntry[]>({
+    queryKey: ['attendance-history', employeeId, date],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/employees/attendance/history/', {
+        params: { employee_id: employeeId, date },
+      })
+      return data
+    },
+    enabled: !!employeeId && !!date,
+  })
+}
+
 export function useRecordAttendance() {
   const qc = useQueryClient()
   return useMutation<

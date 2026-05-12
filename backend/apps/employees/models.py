@@ -35,3 +35,19 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f'{self.employee.full_name} — {self.date} ({self.hours})'
+
+
+class AttendanceHistory(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendance_history')
+    date = models.DateField()
+    old_hours = models.DecimalField(max_digits=4, decimal_places=1)
+    new_hours = models.DecimalField(max_digits=4, decimal_places=1)
+    changed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'attendance_history'
+        ordering = ['-changed_at']
+
+    def __str__(self):
+        return f'{self.employee.full_name} {self.date}: {self.old_hours}→{self.new_hours}'

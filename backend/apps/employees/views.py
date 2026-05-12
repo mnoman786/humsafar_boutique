@@ -4,8 +4,23 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.authentication.permissions import IsAdminOrStaff, IsAdmin
-from .models import Employee, Attendance
-from .serializers import EmployeeSerializer, AttendanceSerializer
+from .models import Employee, Attendance, AttendanceHistory
+from .serializers import EmployeeSerializer, AttendanceSerializer, AttendanceHistorySerializer
+
+
+class AttendanceHistoryView(APIView):
+    permission_classes = (IsAdminOrStaff,)
+
+    def get(self, request):
+        employee_id = request.query_params.get('employee_id')
+        date_str = request.query_params.get('date')
+        if not employee_id or not date_str:
+            return Response({'error': 'employee_id and date are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        history = AttendanceHistory.objects.filter(
+            employee_id=employee_id, date=date_str
+        ).select_related('changed_by')
+        serializer = AttendanceHistorySerializer(history, many=True)
+        return Response(serializer.data)
 
 
 class EmployeeListView(generics.ListCreateAPIView):
@@ -117,10 +132,27 @@ class WeeklyAttendanceView(APIView):
         except Employee.DoesNotExist:
             return Response({'error': 'Employee not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Capture old value before update for history log
+        try:
+            existing = Attendance.objects.get(employee=employee, date=date_str)
+            old_hours = float(existing.hours)
+        except Attendance.DoesNotExist:
+            old_hours = 0
+
         att, _ = Attendance.objects.update_or_create(
             employee=employee,
             date=date_str,
             defaults={'hours': hours, 'recorded_by': request.user}
         )
+
+        # Only log if value actually changed
+        if old_hours != float(hours):
+            AttendanceHistory.objects.create(
+                employee=employee,
+                date=date_str,
+                old_hours=old_hours,
+                new_hours=hours,
+                changed_by=request.user,
+            )
 
         return Response({'id': att.id, 'employee_id': employee_id, 'date': date_str, 'hours': float(att.hours)})
