@@ -15,9 +15,15 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
   const updateOrder = useUpdateOrder(Number(id))
 
   const handleSubmit = (data: OrderFormValues) => {
-    updateOrder.mutate(data, {
-      onSuccess: () => router.push(`/orders/${id}`),
-    })
+    updateOrder.mutate(
+      {
+        ...data,
+        total_amount: String(data.total_amount),
+        advance_payment: String(data.advance_payment),
+        quantity: data.quantity,
+      },
+      { onSuccess: () => router.push(`/orders/${id}`) }
+    )
   }
 
   if (isLoading) {
