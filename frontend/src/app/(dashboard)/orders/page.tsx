@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { Suspense, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, Search, Eye, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import { useOrders, useDeleteOrder } from '@/hooks/useOrders'
@@ -14,7 +14,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 const STATUSES: Array<OrderStatus | ''> = ['', 'waiting', 'running', 'completed', 'delivered', 'cancelled']
 
-export default function OrdersPage() {
+function OrdersContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -204,5 +204,13 @@ export default function OrdersPage() {
         loading={deleteOrder.isPending}
       />
     </div>
+  )
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={<div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-96 w-full" /></div>}>
+      <OrdersContent />
+    </Suspense>
   )
 }
