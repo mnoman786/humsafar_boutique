@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/utils'
 
-const HOURS_OPTIONS = [0, 0.5, 1, 1.5, 2, 2.5]
+const HOURS_OPTIONS = [0, 0.5, 1, 1.5, 2, 2.5, 3]
 
 function getMonday(d: Date): string {
   const day = d.getDay()
