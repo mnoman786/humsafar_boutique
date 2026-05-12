@@ -13,10 +13,12 @@ interface NavbarProps {
 
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<UserType | null>(null)
   const logout = useLogout()
 
   useEffect(() => {
+    setMounted(true)
     try {
       const stored = localStorage.getItem('user')
       if (stored) setUser(JSON.parse(stored))
@@ -40,7 +42,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         className="p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground"
       >
-        {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        {mounted && (theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />)}
       </button>
 
       {/* User menu */}

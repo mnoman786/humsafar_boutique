@@ -71,14 +71,9 @@ function HistoryPanel({
   const dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="fixed top-0 bottom-0 left-0 right-0 lg:top-16 lg:left-64 z-40 flex">
-      {/* Backdrop */}
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-
-      {/* Panel */}
-      <div className="w-full max-w-sm bg-white dark:bg-gray-900 h-full border-l border-border shadow-2xl flex flex-col">
+    <div className="fixed right-0 top-0 lg:top-16 bottom-0 w-full max-w-sm z-40 bg-white dark:bg-gray-900 border-l border-border shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-border">
+        <div className="flex items-start justify-between px-5 pt-3 pb-4 border-b border-border">
           <div>
             <div className="flex items-center gap-2 text-primary mb-1">
               <History className="w-4 h-4" />
@@ -141,7 +136,6 @@ function HistoryPanel({
         <div className="p-4 border-t border-border">
           <Button variant="outline" className="w-full" onClick={onClose}>Close</Button>
         </div>
-      </div>
     </div>
   )
 }
