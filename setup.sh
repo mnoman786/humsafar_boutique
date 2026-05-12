@@ -16,9 +16,20 @@ info()  { echo -e "${GREEN}[setup]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[warn]${NC}  $*"; }
 
 # ── 1. System packages ────────────────────────────────────────────────────────
+info "Fixing any broken packages..."
+dpkg --configure -a
+apt-get -f install -y -qq
+
 info "Installing system packages..."
 apt-get update -qq
-apt-get install -y -qq python3 python3-pip python3-venv nodejs npm
+apt-get install -y -qq --fix-broken python3 python3-pip python3-venv
+
+# Install Node.js 20 via NodeSource if nodejs is outdated or broken
+if ! node --version 2>/dev/null | grep -qE '^v(18|20|22)'; then
+  info "Installing Node.js 20 via NodeSource..."
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y -qq nodejs
+fi
 
 # ── 2. Backend ────────────────────────────────────────────────────────────────
 info "Setting up Django backend..."
