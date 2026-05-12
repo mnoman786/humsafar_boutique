@@ -71,7 +71,7 @@ function HistoryPanel({
   const dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="fixed inset-0 z-40 flex">
+    <div className="fixed top-0 bottom-0 left-0 right-0 lg:top-16 lg:left-64 z-40 flex">
       {/* Backdrop */}
       <div className="flex-1 bg-black/40" onClick={onClose} />
 
