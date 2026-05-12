@@ -163,7 +163,7 @@ export default function TrackOrderPage() {
         )}
 
         <p className="text-center text-xs text-muted-foreground">
-          © 2025 Hamsafar Boutique. All rights reserved.
+          © 2025 Humsafar Boutique. All rights reserved.
         </p>
       </div>
     </div>

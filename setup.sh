@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hamsafar Boutique — one-shot setup script
+# Humsafar Boutique — one-shot setup script
 # Run as root or with sudo: sudo bash setup.sh
 # Tested on Ubuntu 22.04 / Debian 12
 
@@ -57,10 +57,10 @@ npm run build
 cd "$PROJECT_DIR"
 
 # ── 4. Systemd — backend ──────────────────────────────────────────────────────
-info "Creating systemd service: hamsafar-backend..."
-cat > /etc/systemd/system/hamsafar-backend.service <<EOF
+info "Creating systemd service: Humsafar-backend..."
+cat > /etc/systemd/system/Humsafar-backend.service <<EOF
 [Unit]
-Description=Hamsafar Boutique — Django Backend
+Description=Humsafar Boutique — Django Backend
 After=network.target
 
 [Service]
@@ -76,14 +76,14 @@ WantedBy=multi-user.target
 EOF
 
 # ── 5. Systemd — frontend ─────────────────────────────────────────────────────
-info "Creating systemd service: hamsafar-frontend..."
+info "Creating systemd service: Humsafar-frontend..."
 NODE_BIN="$(which node)"
 NPM_BIN="$(which npm)"
 
-cat > /etc/systemd/system/hamsafar-frontend.service <<EOF
+cat > /etc/systemd/system/Humsafar-frontend.service <<EOF
 [Unit]
-Description=Hamsafar Boutique — Next.js Frontend
-After=network.target hamsafar-backend.service
+Description=Humsafar Boutique — Next.js Frontend
+After=network.target Humsafar-backend.service
 
 [Service]
 User=$SERVICE_USER
@@ -102,24 +102,24 @@ EOF
 info "Enabling and starting services..."
 systemctl daemon-reload
 
-systemctl enable hamsafar-backend
-systemctl restart hamsafar-backend
+systemctl enable Humsafar-backend
+systemctl restart Humsafar-backend
 
-systemctl enable hamsafar-frontend
-systemctl restart hamsafar-frontend
+systemctl enable Humsafar-frontend
+systemctl restart Humsafar-frontend
 
 # ── 7. Status ─────────────────────────────────────────────────────────────────
 echo ""
 info "Done! Services are running:"
-systemctl is-active --quiet hamsafar-backend  && echo -e "  ${GREEN}✓${NC} hamsafar-backend  → http://localhost:8000" || warn "hamsafar-backend failed to start"
-systemctl is-active --quiet hamsafar-frontend && echo -e "  ${GREEN}✓${NC} hamsafar-frontend → http://localhost:3000" || warn "hamsafar-frontend failed to start"
+systemctl is-active --quiet Humsafar-backend  && echo -e "  ${GREEN}✓${NC} Humsafar-backend  → http://localhost:8000" || warn "Humsafar-backend failed to start"
+systemctl is-active --quiet Humsafar-frontend && echo -e "  ${GREEN}✓${NC} Humsafar-frontend → http://localhost:3000" || warn "Humsafar-frontend failed to start"
 
 echo ""
 echo "  Useful commands:"
-echo "    sudo systemctl status hamsafar-backend"
-echo "    sudo systemctl status hamsafar-frontend"
-echo "    sudo journalctl -u hamsafar-backend -f"
-echo "    sudo journalctl -u hamsafar-frontend -f"
+echo "    sudo systemctl status Humsafar-backend"
+echo "    sudo systemctl status Humsafar-frontend"
+echo "    sudo journalctl -u Humsafar-backend -f"
+echo "    sudo journalctl -u Humsafar-frontend -f"
 echo ""
 warn "First run? Create a superuser:"
 echo "    cd $BACKEND_DIR && $VENV/bin/python manage.py createsuperuser"

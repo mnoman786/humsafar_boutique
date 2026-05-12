@@ -122,7 +122,7 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Hamsafar Boutique API',
+    'TITLE': 'Humsafar Boutique API',
     'DESCRIPTION': 'Boutique Order Management System API',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,

@@ -65,7 +65,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <Scissors className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="bg-gradient-to-r from-boutique-600 to-boutique-400 bg-clip-text text-transparent">
-              Hamsafar
+              Humsafar
             </span>
           </Link>
           <button onClick={onClose} className="lg:hidden text-muted-foreground hover:text-foreground">

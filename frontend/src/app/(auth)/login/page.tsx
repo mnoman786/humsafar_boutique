@@ -40,7 +40,7 @@ export default function LoginPage() {
             <Scissors className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-boutique-700 to-boutique-400 bg-clip-text text-transparent">
-            Hamsafar Boutique
+            Humsafar Boutique
           </h1>
           <p className="text-muted-foreground mt-1">Order Management System</p>
         </div>
@@ -108,7 +108,7 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           Having trouble?{' '}
-          <a href="mailto:admin@hamsafar.pk" className="text-primary hover:underline">
+          <a href="mailto:admin@Humsafar.pk" className="text-primary hover:underline">
             Contact support
           </a>
         </p>
