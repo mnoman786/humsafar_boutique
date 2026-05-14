@@ -359,6 +359,23 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             </CardContent>
           </Card>
 
+          {/* Materials Used */}
+          {order.materials && order.materials.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Materials Used</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {order.materials.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between py-2 px-3 rounded-lg border border-border text-sm">
+                      <span className="font-medium">{m.item_name}</span>
+                      <span className="text-muted-foreground">{m.quantity} {m.unit}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Notes */}
           {(order.customer_notes || order.admin_notes) && (
             <Card>

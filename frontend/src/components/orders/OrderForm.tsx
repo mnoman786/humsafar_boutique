@@ -7,9 +7,12 @@ import { Upload, X, Search, ChevronDown, User, Plus, Trash2 } from 'lucide-react
 import { Input, Textarea } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAllCustomers } from '@/hooks/useCustomers'
+import { useAllInventory } from '@/hooks/useInventory'
 import type { Order } from '@/types/order'
 import type { Customer } from '@/types/customer'
 import type { PaymentMethod } from '@/types/payment'
+import type { MaterialEntry } from '@/types/inventory'
+import { isWholeUnit } from '@/types/inventory'
 import { PAYMENT_METHOD_LABELS } from '@/types/payment'
 import { cn } from '@/lib/utils'
 
@@ -39,11 +42,14 @@ export interface AdvancePaymentEntry {
   notes: string
 }
 
+export type { MaterialEntry }
+
 interface OrderFormProps {
   defaultValues?: Partial<OrderFormValues>
-  onSubmit: (data: OrderFormValues, images: File[], advancePayments: AdvancePaymentEntry[]) => void
+  onSubmit: (data: OrderFormValues, images: File[], advancePayments: AdvancePaymentEntry[], materials: MaterialEntry[]) => void
   loading?: boolean
   existingImages?: Order['images']
+  existingMaterials?: Order['materials']
   onDeleteImage?: (imageId: number) => void
   /** When true, shows the multi-payment advance section instead of the single advance_payment field */
   showAdvancePayments?: boolean
@@ -181,15 +187,18 @@ export function OrderForm({
   onSubmit,
   loading,
   existingImages = [],
+  existingMaterials = [],
   onDeleteImage,
   showAdvancePayments = false,
 }: OrderFormProps) {
   const [images, setImages] = useState<File[]>([])
   const [remaining, setRemaining] = useState(0)
   const [advancePayments, setAdvancePayments] = useState<AdvancePaymentEntry[]>([])
+  const [materials, setMaterials] = useState<MaterialEntry[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: allCustomers = [], isLoading: customersLoading } = useAllCustomers()
+  const { data: allInventory = [] } = useAllInventory()
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
@@ -242,7 +251,25 @@ export function OrderForm({
 
   const removeFile = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx))
 
-  const submit = (data: OrderFormValues) => onSubmit(data, images, advancePayments)
+  const addMaterialRow = (itemId: number) => {
+    const item = allInventory.find((i) => i.id === itemId)
+    if (!item || materials.some((m) => m.item_id === itemId)) return
+    setMaterials((prev) => [...prev, {
+      item_id: item.id,
+      item_name: item.name,
+      unit: item.unit,
+      available: parseFloat(item.quantity),
+      quantity: 1,
+    }])
+  }
+
+  const removeMaterialRow = (itemId: number) =>
+    setMaterials((prev) => prev.filter((m) => m.item_id !== itemId))
+
+  const updateMaterialQty = (itemId: number, qty: number) =>
+    setMaterials((prev) => prev.map((m) => m.item_id === itemId ? { ...m, quantity: qty } : m))
+
+  const submit = (data: OrderFormValues) => onSubmit(data, images, advancePayments, materials)
 
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-6">
@@ -457,6 +484,78 @@ export function OrderForm({
           <Textarea label="Admin Notes" {...register('admin_notes')} placeholder="Internal admin notes..." rows={3} />
           <Textarea label="Extra Notes" className="sm:col-span-2" {...register('extra_notes')} rows={2} />
         </div>
+      </section>
+
+      {/* Materials */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Materials Used</h3>
+        </div>
+
+        {/* Existing materials (edit mode) */}
+        {existingMaterials.length > 0 && materials.length === 0 && (
+          <div className="mb-3 p-3 rounded-lg bg-muted/30 border border-border text-sm">
+            <p className="text-xs text-muted-foreground font-medium mb-2">Previously recorded materials:</p>
+            <div className="space-y-1">
+              {existingMaterials.map((m) => (
+                <span key={m.id} className="inline-flex items-center gap-1 mr-2 px-2 py-0.5 rounded-full bg-muted text-xs">
+                  {m.item_name} — {m.quantity} {m.unit}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Item picker */}
+        {allInventory.length > 0 && (
+          <div className="mb-3">
+            <label className="block text-sm font-medium mb-1.5">Add material</label>
+            <select
+              onChange={(e) => { if (e.target.value) { addMaterialRow(Number(e.target.value)); e.target.value = '' } }}
+              className="w-full px-3 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">— Select an inventory item —</option>
+              {allInventory
+                .filter((i) => !materials.some((m) => m.item_id === i.id))
+                .map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name} ({i.quantity} {i.unit} available)
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
+
+        {materials.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">No materials added yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {materials.map((m) => (
+              <div key={m.item_id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-muted/20">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{m.item_name}</p>
+                  <p className="text-xs text-muted-foreground">Available: {m.available} {m.unit}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <input
+                    type="number"
+                    min={isWholeUnit(m.unit) ? 1 : 0.01}
+                    step={isWholeUnit(m.unit) ? '1' : '0.01'}
+                    max={m.available}
+                    value={m.quantity}
+                    onChange={(e) => updateMaterialQty(m.item_id, isWholeUnit(m.unit) ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)}
+                    className="w-24 px-2 h-8 rounded-lg border border-input bg-background text-sm text-right focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <span className="text-xs text-muted-foreground w-12">{m.unit}</span>
+                  <button type="button" onClick={() => removeMaterialRow(m.item_id)}
+                    className="text-muted-foreground hover:text-destructive transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Images */}

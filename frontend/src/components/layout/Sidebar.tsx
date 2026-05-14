@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, ShoppingBag, Users, CreditCard,
-  BarChart3, Settings, X, Scissors, UserCog, CalendarCheck, ShieldCheck
+  BarChart3, Settings, X, Scissors, UserCog, CalendarCheck, ShieldCheck, Package
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { User } from '@/types/auth'
@@ -16,6 +16,7 @@ const navItems = [
   { href: '/payments', label: 'Payments', icon: CreditCard, roles: ['admin'] },
   { href: '/attendance', label: 'Attendance', icon: CalendarCheck, roles: ['admin', 'staff', 'user'] },
   { href: '/employees', label: 'Employees', icon: UserCog, roles: ['admin', 'staff', 'user'] },
+  { href: '/inventory', label: 'Inventory', icon: Package, roles: ['admin', 'staff'] },
   { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
   { href: '/users', label: 'Users', icon: ShieldCheck, roles: ['admin'] },
   { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin', 'staff', 'user'] },

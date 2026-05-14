@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { OrderForm, type OrderFormValues, type AdvancePaymentEntry } from '@/components/orders/OrderForm'
+import { OrderForm, type OrderFormValues, type AdvancePaymentEntry, type MaterialEntry } from '@/components/orders/OrderForm'
 import { useCreateOrder } from '@/hooks/useOrders'
 import apiClient from '@/lib/axios'
 import { toast } from 'sonner'
@@ -17,7 +17,8 @@ export default function AddOrderPage() {
   const handleSubmit = async (
     data: OrderFormValues,
     images: File[],
-    advancePayments: AdvancePaymentEntry[]
+    advancePayments: AdvancePaymentEntry[],
+    materials: MaterialEntry[]
   ) => {
     setSubmitting(true)
 
@@ -30,6 +31,12 @@ export default function AddOrderPage() {
     })
     formData.append('advance_payment', '0')
     images.forEach((img) => formData.append('images', img))
+    const validMaterials = materials.filter((m) => m.item_id && m.quantity > 0)
+    if (validMaterials.length > 0) {
+      formData.append('materials', JSON.stringify(
+        validMaterials.map((m) => ({ item_id: m.item_id, quantity: m.quantity }))
+      ))
+    }
 
     createOrder.mutate(formData, {
       onSuccess: async (order) => {

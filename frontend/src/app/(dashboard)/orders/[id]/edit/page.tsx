@@ -70,6 +70,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
               extra_notes: order.extra_notes,
             }}
             existingImages={order.images}
+            existingMaterials={order.materials}
             onSubmit={handleSubmit}
             loading={updateOrder.isPending}
           />

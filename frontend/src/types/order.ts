@@ -1,4 +1,5 @@
 import type { CustomerBrief } from './customer'
+import type { OrderMaterialItem } from './inventory'
 
 export type OrderStatus = 'waiting' | 'running' | 'completed' | 'delivered' | 'cancelled'
 
@@ -42,6 +43,7 @@ export interface Order {
   updated_at: string
   status_history: StatusHistory[]
   images: UploadedImage[]
+  materials: OrderMaterialItem[]
 }
 
 export interface OrderListItem {

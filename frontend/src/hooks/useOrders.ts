@@ -44,6 +44,8 @@ export function useCreateOrder() {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['orders'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['inventory'] })
+      qc.invalidateQueries({ queryKey: ['inventory-all'] })
       toast.success(`Order ${data.order_number} created successfully.`)
     },
     onError: () => toast.error('Failed to create order.'),
@@ -78,6 +80,8 @@ export function useUpdateOrderStatus(id: number) {
       qc.invalidateQueries({ queryKey: ['orders'] })
       qc.invalidateQueries({ queryKey: ['order', id] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['inventory'] })
+      qc.invalidateQueries({ queryKey: ['inventory-all'] })
       toast.success(`Status updated to "${data.status}".`)
     },
     onError: () => toast.error('Failed to update status.'),

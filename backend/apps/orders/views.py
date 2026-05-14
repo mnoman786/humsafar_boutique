@@ -1,3 +1,4 @@
+from decimal import Decimal
 from rest_framework import generics, filters, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -37,7 +38,7 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAdminOrStaff,)
     serializer_class = OrderSerializer
     queryset = Order.objects.select_related('customer', 'created_by').prefetch_related(
-        'status_history__changed_by', 'images', 'payments'
+        'status_history__changed_by', 'images', 'payments', 'materials__item'
     )
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -57,6 +58,34 @@ class OrderStatusUpdateView(APIView):
             notes = serializer.validated_data.get('notes', '')
             delivered_date = serializer.validated_data.get('delivered_date')
 
+            from apps.inventory.models import InventoryTransaction
+
+            # Restore stock when cancelling
+            if new_status == 'cancelled' and order.status != 'cancelled':
+                for material in order.materials.select_related('item'):
+                    material.item.quantity += material.quantity
+                    material.item.save()
+                    InventoryTransaction.objects.create(
+                        item=material.item, order=order,
+                        transaction_type='in',
+                        quantity=material.quantity,
+                        notes=f'Restored: order {order.order_number} cancelled',
+                        created_by=request.user,
+                    )
+
+            # Re-deduct stock when reactivating a cancelled order
+            elif order.status == 'cancelled' and new_status != 'cancelled':
+                for material in order.materials.select_related('item'):
+                    material.item.quantity = max(Decimal('0'), material.item.quantity - material.quantity)
+                    material.item.save()
+                    InventoryTransaction.objects.create(
+                        item=material.item, order=order,
+                        transaction_type='out',
+                        quantity=material.quantity,
+                        notes=f'Re-deducted: order {order.order_number} reactivated',
+                        created_by=request.user,
+                    )
+
             order.status = new_status
             if delivered_date:
                 order.delivered_date = delivered_date
@@ -69,6 +98,9 @@ class OrderStatusUpdateView(APIView):
                 notes=notes
             )
 
+            order = Order.objects.select_related('customer', 'created_by').prefetch_related(
+                'status_history__changed_by', 'images', 'payments', 'materials__item'
+            ).get(pk=pk)
             return Response(OrderSerializer(order, context={'request': request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

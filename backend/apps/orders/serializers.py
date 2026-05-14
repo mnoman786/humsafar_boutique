@@ -1,3 +1,5 @@
+import json
+from decimal import Decimal
 from rest_framework import serializers
 from apps.customers.serializers import CustomerBriefSerializer
 from .models import Order, OrderStatusHistory, UploadedImage
@@ -38,6 +40,17 @@ class OrderListSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'order_number', 'remaining_payment', 'created_at')
 
 
+class OrderMaterialSerializer(serializers.ModelSerializer):
+    item_id = serializers.IntegerField(source='item.id', read_only=True)
+    item_name = serializers.CharField(source='item.name', read_only=True)
+    unit = serializers.CharField(source='item.unit', read_only=True)
+
+    class Meta:
+        from apps.inventory.models import OrderMaterial
+        model = OrderMaterial
+        fields = ('id', 'item_id', 'item_name', 'unit', 'quantity')
+
+
 class OrderSerializer(serializers.ModelSerializer):
     customer = CustomerBriefSerializer(read_only=True)
     customer_id = serializers.PrimaryKeyRelatedField(
@@ -46,6 +59,7 @@ class OrderSerializer(serializers.ModelSerializer):
     )
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)
     images = UploadedImageSerializer(many=True, read_only=True)
+    materials = OrderMaterialSerializer(many=True, read_only=True)
     total_paid = serializers.ReadOnlyField()
     balance_due = serializers.ReadOnlyField()
     created_by_name = serializers.SerializerMethodField()
@@ -61,7 +75,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'status', 'order_date', 'expected_delivery_date', 'delivered_date',
             'customer_notes', 'admin_notes', 'extra_notes',
             'created_by_name', 'created_at', 'updated_at',
-            'status_history', 'images',
+            'status_history', 'images', 'materials',
         )
         read_only_fields = ('id', 'order_number', 'remaining_payment', 'created_at', 'updated_at')
 
@@ -69,18 +83,47 @@ class OrderSerializer(serializers.ModelSerializer):
         return obj.created_by.full_name if obj.created_by else None
 
     def create(self, validated_data):
+        from apps.inventory.models import InventoryItem, OrderMaterial, InventoryTransaction
         request = self.context.get('request')
         validated_data['created_by'] = request.user if request else None
         order = super().create(validated_data)
+
         OrderStatusHistory.objects.create(
             order=order,
             status=order.status,
             changed_by=request.user if request else None,
             notes='Order created'
         )
+
         if request:
             for img in request.FILES.getlist('images'):
                 UploadedImage.objects.create(order=order, image=img)
+
+            # Deduct inventory materials
+            try:
+                materials = json.loads(request.data.get('materials', '[]'))
+            except (json.JSONDecodeError, TypeError):
+                materials = []
+
+            for m in materials:
+                try:
+                    item_id = int(m.get('item_id', 0))
+                    qty = Decimal(str(m.get('quantity', 0)))
+                    if item_id and qty > 0:
+                        item = InventoryItem.objects.get(pk=item_id)
+                        OrderMaterial.objects.create(order=order, item=item, quantity=qty)
+                        item.quantity = max(Decimal('0'), item.quantity - qty)
+                        item.save()
+                        InventoryTransaction.objects.create(
+                            item=item, order=order,
+                            transaction_type='out',
+                            quantity=qty,
+                            notes=f'Used in order {order.order_number}',
+                            created_by=request.user,
+                        )
+                except (InventoryItem.DoesNotExist, ValueError, TypeError):
+                    pass
+
         return order
 
 
