@@ -3,13 +3,13 @@ from rest_framework import generics, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from apps.authentication.permissions import IsAdminOrStaff, IsAdmin
+from apps.authentication.permissions import IsAdminOrStaff, IsAdmin, IsAdminOrStaffOrUser
 from .models import Employee, Attendance, AttendanceHistory
 from .serializers import EmployeeSerializer, AttendanceSerializer, AttendanceHistorySerializer
 
 
 class AttendanceHistoryView(APIView):
-    permission_classes = (IsAdminOrStaff,)
+    permission_classes = (IsAdminOrStaffOrUser,)
 
     def get(self, request):
         employee_id = request.query_params.get('employee_id')
@@ -33,7 +33,7 @@ class EmployeeListView(generics.ListCreateAPIView):
     def get_permissions(self):
         if self.request.method == 'POST':
             return [IsAdmin()]
-        return [IsAdminOrStaff()]
+        return [IsAdminOrStaffOrUser()]
 
     def get_queryset(self):
         qs = Employee.objects.all()
@@ -48,13 +48,13 @@ class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Employee.objects.all()
 
     def get_permissions(self):
-        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+        if self.request.method == 'DELETE':
             return [IsAdmin()]
-        return [IsAdminOrStaff()]
+        return [IsAdminOrStaffOrUser()]
 
 
 class WeeklyAttendanceView(APIView):
-    permission_classes = (IsAdminOrStaff,)
+    permission_classes = (IsAdminOrStaffOrUser,)
 
     def get(self, request):
         week_start_str = request.query_params.get('week_start')

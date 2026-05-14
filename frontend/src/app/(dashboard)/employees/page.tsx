@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Plus, Search, Pencil, Trash2, UserCheck, UserX } from 'lucide-react'
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useDeleteEmployee } from '@/hooks/useEmployees'
+import { useStoredUser } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,6 +16,9 @@ export default function EmployeesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+
+  const currentUser = useStoredUser()
+  const isUser = currentUser?.role === 'user'
 
   const { data, isLoading } = useEmployees({ search: search || undefined })
   const createEmployee = useCreateEmployee()
@@ -39,9 +43,11 @@ export default function EmployeesPage() {
           <h1 className="text-2xl font-bold">Employees</h1>
           <p className="text-muted-foreground text-sm mt-1">{data?.count ?? 0} total employees</p>
         </div>
-        <Button onClick={openAdd}>
-          <Plus className="w-4 h-4" /> Add Employee
-        </Button>
+        {!isUser && (
+          <Button onClick={openAdd}>
+            <Plus className="w-4 h-4" /> Add Employee
+          </Button>
+        )}
       </div>
 
       <Card className="p-4">
@@ -107,9 +113,11 @@ export default function EmployeesPage() {
                         <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}>
                           <Pencil className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(emp.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                        {!isUser && (
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(emp.id)}>
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

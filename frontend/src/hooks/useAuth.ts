@@ -31,7 +31,7 @@ export function useLogin() {
       localStorage.setItem('user', JSON.stringify(data.user))
       qc.setQueryData(['me'], data.user)
       toast.success(`Welcome back, ${data.user.full_name}!`)
-      router.push('/')
+      router.push(data.user.role === 'user' ? '/attendance' : '/')
     },
     onError: () => {
       toast.error('Invalid email or password.')
