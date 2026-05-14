@@ -55,7 +55,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   }, [lightboxIndex, order?.images])
 
   const handleStatusChange = (newStatus: OrderStatus) => {
-    updateStatus.mutate({ status: newStatus, notes: statusNotes })
+    const payload: Parameters<typeof updateStatus.mutate>[0] = { status: newStatus, notes: statusNotes }
+    if (newStatus === 'delivered') {
+      payload.delivered_date = new Date().toISOString().split('T')[0]
+    }
+    updateStatus.mutate(payload)
     setStatusOpen(false)
     setStatusNotes('')
   }
@@ -169,6 +173,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   ['Cloth Type', order.cloth_type],
                   ['Cloth Color', order.cloth_color],
                   ['Quantity', order.quantity],
+                  ['Order Date', formatDate(order.order_date)],
                   ['Expected Delivery', formatDate(order.expected_delivery_date)],
                   ['Delivered Date', formatDate(order.delivered_date)],
                   ['Created By', order.created_by_name ?? '—'],

@@ -14,6 +14,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
   const { data: order, isLoading } = useOrder(Number(id))
   const updateOrder = useUpdateOrder(Number(id))
 
+  // OrderForm passes (data, images, advancePayments) — edit only uses data
   const handleSubmit = (data: OrderFormValues) => {
     updateOrder.mutate(
       {
@@ -62,6 +63,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
               total_amount: parseFloat(order.total_amount),
               advance_payment: parseFloat(order.advance_payment),
               status: order.status,
+              order_date: order.order_date ?? '',
               expected_delivery_date: order.expected_delivery_date ?? '',
               customer_notes: order.customer_notes,
               admin_notes: order.admin_notes,

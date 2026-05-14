@@ -74,6 +74,7 @@ export function useUpdateOrderStatus(id: number) {
       return data
     },
     onSuccess: (data) => {
+      qc.setQueryData(['order', id], data)
       qc.invalidateQueries({ queryKey: ['orders'] })
       qc.invalidateQueries({ queryKey: ['order', id] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })

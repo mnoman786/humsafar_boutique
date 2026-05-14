@@ -52,6 +52,7 @@ export function useCreateCustomer() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['customers'] })
+      qc.invalidateQueries({ queryKey: ['customers-all'] })
       toast.success('Customer added successfully.')
     },
     onError: () => toast.error('Failed to add customer.'),

@@ -47,6 +47,8 @@ class Order(models.Model):
     admin_notes = models.TextField(blank=True)
     extra_notes = models.TextField(blank=True)
 
+    order_date = models.DateField(default=timezone.now)
+
     created_by = models.ForeignKey(
         CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_orders'
     )

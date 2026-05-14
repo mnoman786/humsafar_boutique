@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"d:\\\\p_project\\\\hamsafar boutique\" -Force)",
+      "Bash(Select-Object -Property Name, PSIsContainer)",
+      "Bash(venv\\\\Scripts\\\\python.exe manage.py makemigrations orders --name add_order_date)"
+    ]
+  }
+}

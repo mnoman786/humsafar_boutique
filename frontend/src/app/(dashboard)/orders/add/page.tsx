@@ -1,25 +1,59 @@
 'use client'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { OrderForm, type OrderFormValues } from '@/components/orders/OrderForm'
+import { OrderForm, type OrderFormValues, type AdvancePaymentEntry } from '@/components/orders/OrderForm'
 import { useCreateOrder } from '@/hooks/useOrders'
+import apiClient from '@/lib/axios'
+import { toast } from 'sonner'
 
 export default function AddOrderPage() {
   const router = useRouter()
   const createOrder = useCreateOrder()
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (data: OrderFormValues, images: File[]) => {
+  const handleSubmit = async (
+    data: OrderFormValues,
+    images: File[],
+    advancePayments: AdvancePaymentEntry[]
+  ) => {
+    setSubmitting(true)
+
     const formData = new FormData()
     Object.entries(data).forEach(([key, val]) => {
+      if (key === 'advance_payment') return // handled via Payment records
       if (val !== undefined && val !== '') {
         formData.append(key, String(val))
       }
     })
+    formData.append('advance_payment', '0')
     images.forEach((img) => formData.append('images', img))
+
     createOrder.mutate(formData, {
-      onSuccess: (order) => router.push(`/orders/${order.id}`),
+      onSuccess: async (order) => {
+        // Create each advance payment record sequentially so balance checks stay accurate
+        if (advancePayments.length > 0) {
+          const valid = advancePayments.filter((p) => p.amount > 0 && p.payment_date)
+          try {
+            for (const p of valid) {
+              await apiClient.post('/payments/', {
+                order_id: order.id,
+                amount: String(p.amount),
+                payment_date: p.payment_date,
+                payment_method: p.payment_method,
+                notes: p.notes || '',
+              })
+            }
+          } catch {
+            toast.error('Order created but one or more payments could not be saved.')
+          }
+        }
+        setSubmitting(false)
+        router.push(`/orders/${order.id}`)
+      },
+      onError: () => setSubmitting(false),
     })
   }
 
@@ -37,7 +71,11 @@ export default function AddOrderPage() {
 
       <Card>
         <CardContent className="pt-6">
-          <OrderForm onSubmit={handleSubmit} loading={createOrder.isPending} />
+          <OrderForm
+            onSubmit={handleSubmit}
+            loading={submitting}
+            showAdvancePayments
+          />
         </CardContent>
       </Card>
     </div>

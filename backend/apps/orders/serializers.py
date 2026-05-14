@@ -33,7 +33,7 @@ class OrderListSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'order_number', 'customer', 'customer_id', 'status',
             'total_amount', 'advance_payment', 'remaining_payment',
-            'expected_delivery_date', 'created_at',
+            'order_date', 'expected_delivery_date', 'created_at',
         )
         read_only_fields = ('id', 'order_number', 'remaining_payment', 'created_at')
 
@@ -58,7 +58,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'design_details', 'measurement_details',
             'total_amount', 'advance_payment', 'remaining_payment',
             'total_paid', 'balance_due',
-            'status', 'expected_delivery_date', 'delivered_date',
+            'status', 'order_date', 'expected_delivery_date', 'delivered_date',
             'customer_notes', 'admin_notes', 'extra_notes',
             'created_by_name', 'created_at', 'updated_at',
             'status_history', 'images',
@@ -78,6 +78,9 @@ class OrderSerializer(serializers.ModelSerializer):
             changed_by=request.user if request else None,
             notes='Order created'
         )
+        if request:
+            for img in request.FILES.getlist('images'):
+                UploadedImage.objects.create(order=order, image=img)
         return order
 
 

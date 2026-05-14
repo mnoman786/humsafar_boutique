@@ -3,12 +3,14 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useEffect, useRef, useState, useMemo } from 'react'
-import { Upload, X, Search, ChevronDown, User } from 'lucide-react'
+import { Upload, X, Search, ChevronDown, User, Plus, Trash2 } from 'lucide-react'
 import { Input, Textarea } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAllCustomers } from '@/hooks/useCustomers'
 import type { Order } from '@/types/order'
 import type { Customer } from '@/types/customer'
+import type { PaymentMethod } from '@/types/payment'
+import { PAYMENT_METHOD_LABELS } from '@/types/payment'
 import { cn } from '@/lib/utils'
 
 const orderSchema = z.object({
@@ -21,6 +23,7 @@ const orderSchema = z.object({
   total_amount: z.coerce.number().min(0, 'Enter a valid amount'),
   advance_payment: z.coerce.number().min(0, 'Enter a valid amount'),
   status: z.enum(['waiting', 'running', 'completed', 'delivered', 'cancelled']),
+  order_date: z.string().min(1, 'Order date is required'),
   expected_delivery_date: z.string().optional(),
   customer_notes: z.string().optional(),
   admin_notes: z.string().optional(),
@@ -29,12 +32,21 @@ const orderSchema = z.object({
 
 export type OrderFormValues = z.infer<typeof orderSchema>
 
+export interface AdvancePaymentEntry {
+  amount: number
+  payment_date: string
+  payment_method: PaymentMethod
+  notes: string
+}
+
 interface OrderFormProps {
   defaultValues?: Partial<OrderFormValues>
-  onSubmit: (data: OrderFormValues, images: File[]) => void
+  onSubmit: (data: OrderFormValues, images: File[], advancePayments: AdvancePaymentEntry[]) => void
   loading?: boolean
   existingImages?: Order['images']
   onDeleteImage?: (imageId: number) => void
+  /** When true, shows the multi-payment advance section instead of the single advance_payment field */
+  showAdvancePayments?: boolean
 }
 
 // ── Searchable Customer Picker ────────────────────────────────────────────────
@@ -69,7 +81,6 @@ function CustomerPicker({
     )
   }, [customers, search])
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -91,7 +102,6 @@ function CustomerPicker({
 
   return (
     <div ref={ref} className="relative">
-      {/* Trigger */}
       <button
         type="button"
         onClick={handleOpen}
@@ -116,10 +126,8 @@ function CustomerPicker({
         <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-gray-900 border border-border rounded-lg shadow-lg overflow-hidden">
-          {/* Search input */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <input
@@ -131,7 +139,6 @@ function CustomerPicker({
             />
           </div>
 
-          {/* Options list */}
           <div className="max-h-52 overflow-y-auto scrollbar-thin">
             {customers.length === 0 && !loading && (
               <p className="px-3 py-4 text-sm text-muted-foreground text-center">
@@ -166,10 +173,20 @@ function CustomerPicker({
   )
 }
 
+const today = () => new Date().toISOString().split('T')[0]
+
 // ── Main Form ─────────────────────────────────────────────────────────────────
-export function OrderForm({ defaultValues, onSubmit, loading, existingImages = [], onDeleteImage }: OrderFormProps) {
+export function OrderForm({
+  defaultValues,
+  onSubmit,
+  loading,
+  existingImages = [],
+  onDeleteImage,
+  showAdvancePayments = false,
+}: OrderFormProps) {
   const [images, setImages] = useState<File[]>([])
   const [remaining, setRemaining] = useState(0)
+  const [advancePayments, setAdvancePayments] = useState<AdvancePaymentEntry[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: allCustomers = [], isLoading: customersLoading } = useAllCustomers()
@@ -179,6 +196,8 @@ export function OrderForm({ defaultValues, onSubmit, loading, existingImages = [
     defaultValues: {
       status: 'waiting',
       quantity: 1,
+      advance_payment: 0,
+      order_date: today(),
       ...defaultValues,
     },
   })
@@ -187,9 +206,34 @@ export function OrderForm({ defaultValues, onSubmit, loading, existingImages = [
   const advance = watch('advance_payment')
   const customerId = watch('customer_id')
 
+  const advanceTotal = advancePayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+
   useEffect(() => {
-    setRemaining((Number(total) || 0) - (Number(advance) || 0))
-  }, [total, advance])
+    const t = Number(total) || 0
+    const a = showAdvancePayments ? advanceTotal : (Number(advance) || 0)
+    setRemaining(t - a)
+  }, [total, advance, showAdvancePayments, advanceTotal])
+
+  const addPaymentRow = () => {
+    setAdvancePayments((prev) => [
+      ...prev,
+      { amount: 0, payment_date: today(), payment_method: 'cash', notes: '' },
+    ])
+  }
+
+  const removePaymentRow = (idx: number) => {
+    setAdvancePayments((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const updatePaymentRow = <K extends keyof AdvancePaymentEntry>(
+    idx: number,
+    field: K,
+    value: AdvancePaymentEntry[K]
+  ) => {
+    setAdvancePayments((prev) =>
+      prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p))
+    )
+  }
 
   const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
@@ -198,7 +242,7 @@ export function OrderForm({ defaultValues, onSubmit, loading, existingImages = [
 
   const removeFile = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx))
 
-  const submit = (data: OrderFormValues) => onSubmit(data, images)
+  const submit = (data: OrderFormValues) => onSubmit(data, images, advancePayments)
 
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-6">
@@ -207,7 +251,6 @@ export function OrderForm({ defaultValues, onSubmit, loading, existingImages = [
         <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide text-muted-foreground">Basic Details</h3>
         <div className="grid sm:grid-cols-2 gap-4">
 
-          {/* Customer picker — full width */}
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium mb-1.5">Customer *</label>
             <CustomerPicker
@@ -230,7 +273,7 @@ export function OrderForm({ defaultValues, onSubmit, loading, existingImages = [
               className="w-full px-3 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="waiting">Waiting</option>
-              <option value="running">Running</option>
+              <option value="running">In Progress</option>
               <option value="completed">Completed</option>
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
@@ -256,13 +299,26 @@ export function OrderForm({ defaultValues, onSubmit, loading, existingImages = [
             {...register('total_amount')}
             error={errors.total_amount?.message}
           />
-          <Input
-            label="Advance Payment (PKR)"
-            type="number"
-            min={0}
-            step="1"
-            {...register('advance_payment')}
-          />
+
+          {!showAdvancePayments && (
+            <Input
+              label="Advance Payment (PKR)"
+              type="number"
+              min={0}
+              step="1"
+              {...register('advance_payment')}
+            />
+          )}
+
+          {showAdvancePayments && (
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Total Advance</label>
+              <div className="flex h-10 items-center px-3 rounded-lg border border-input bg-muted/30 text-sm font-semibold">
+                PKR {advanceTotal.toLocaleString()}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium mb-1.5">Remaining Payment</label>
             <div className={cn(
@@ -277,10 +333,118 @@ export function OrderForm({ defaultValues, onSubmit, loading, existingImages = [
         </div>
       </section>
 
+      {/* Advance Payments list — create mode only */}
+      {showAdvancePayments && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+              Advance Payments
+            </h3>
+            <Button type="button" variant="outline" size="sm" onClick={addPaymentRow}>
+              <Plus className="w-3.5 h-3.5" /> Add Payment
+            </Button>
+          </div>
+
+          {advancePayments.length === 0 ? (
+            <div className="text-center py-5 text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+              No advance payments yet.{' '}
+              <button type="button" className="text-primary hover:underline" onClick={addPaymentRow}>
+                Add one
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {advancePayments.map((p, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 rounded-lg border border-border bg-muted/20 space-y-3"
+                >
+                  <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
+                    {/* Amount */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">Amount (PKR) *</label>
+                      <input
+                        type="number"
+                        min={1}
+                        step="1"
+                        value={p.amount || ''}
+                        onChange={(e) => updatePaymentRow(idx, 'amount', parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        className="w-full px-3 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+
+                    {/* Date */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">Date *</label>
+                      <input
+                        type="date"
+                        value={p.payment_date}
+                        onChange={(e) => updatePaymentRow(idx, 'payment_date', e.target.value)}
+                        className="w-full px-3 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+
+                    {/* Method */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">Method</label>
+                      <select
+                        value={p.payment_method}
+                        onChange={(e) => updatePaymentRow(idx, 'payment_method', e.target.value as PaymentMethod)}
+                        className="w-full px-3 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((m) => (
+                          <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Remove */}
+                    <button
+                      type="button"
+                      onClick={() => removePaymentRow(idx)}
+                      className="h-10 w-10 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Remove"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Notes</label>
+                    <input
+                      type="text"
+                      value={p.notes}
+                      onChange={(e) => updatePaymentRow(idx, 'notes', e.target.value)}
+                      placeholder="Optional note (e.g. token, partial)"
+                      className="w-full px-3 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {advancePayments.length > 1 && (
+            <p className="mt-3 text-right text-sm text-muted-foreground">
+              Total advance:{' '}
+              <span className="font-semibold text-foreground">PKR {advanceTotal.toLocaleString()}</span>
+            </p>
+          )}
+        </section>
+      )}
+
       {/* Dates */}
       <section>
         <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide text-muted-foreground">Dates</h3>
         <div className="grid sm:grid-cols-2 gap-4">
+          <Input
+            label="Order Date *"
+            type="date"
+            {...register('order_date')}
+            error={errors.order_date?.message}
+          />
           <Input label="Expected Delivery Date" type="date" {...register('expected_delivery_date')} />
         </div>
       </section>

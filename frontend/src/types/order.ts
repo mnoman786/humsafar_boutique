@@ -31,6 +31,7 @@ export interface Order {
   total_paid: string
   balance_due: string
   status: OrderStatus
+  order_date: string
   expected_delivery_date: string | null
   delivered_date: string | null
   customer_notes: string
@@ -65,6 +66,7 @@ export interface OrderFormData {
   total_amount: string
   advance_payment: string
   status: OrderStatus
+  order_date: string
   expected_delivery_date: string
   customer_notes: string
   admin_notes: string
@@ -87,7 +89,7 @@ export interface OrderFilters {
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   waiting: 'Waiting',
-  running: 'Running',
+  running: 'In Progress',
   completed: 'Completed',
   delivered: 'Delivered',
   cancelled: 'Cancelled',
